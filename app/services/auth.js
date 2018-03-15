@@ -34,31 +34,27 @@ export default Service.extend({
    * On success, `user` is a User model with empty `errors` Array. On failure,
    * `user` is `null` and `errors` contains at least one error code.
    */
-  loginUserPassword(authenticator, identity, password) {
-    let currentUserPromise = get(this, 'session')
-      .authenticate(authenticator, identity, password)
-      .then(() => {
-        // user successfully authenticated, fetch user data from API and load
-        // into Ember Data. Returns { user, errors }.
-        return this._fetchUser();
-      })
-      .catch(response => {
-        // deal with errors
-        const { errors } = response || { errors: [{ code: 'other' }] };
-        let errorKeys = [];
-        let user = null;
-        // check for a 401 "Unauthorized" in the list of returned codes
-        let isUnauthorized = errors.mapBy('code').indexOf(401) > -1;
-        if (isUnauthorized) {
-          errorKeys.push(ERROR_UNAUTHORIZED);
-        } else {
-          errorKeys.push(ERROR_OTHER);
-        }
-        return { errors: errorKeys, user };
-      });
-    // 🤞
-    set(this, 'currentUserPromise', currentUserPromise);
-    return currentUserPromise;
+  async loginUserPassword(authenticator, identity, password) {
+    let session = get(this, 'session');
+    try {
+      await session.authenticate(authenticator, identity, password);
+      // user successfully authenticated, fetch user data from API and load
+      // into Ember Data. Returns { user, errors }.
+      return this._fetchUser();
+    } catch (response) {
+      // deal with errors
+      const { errors } = response || { errors: [{ code: 'other' }] };
+      let errorKeys = [];
+      let user = null;
+      // check for a 401 "Unauthorized" in the list of returned codes
+      let isUnauthorized = errors.mapBy('code').indexOf(401) > -1;
+      if (isUnauthorized) {
+        errorKeys.push(ERROR_UNAUTHORIZED);
+      } else {
+        errorKeys.push(ERROR_OTHER);
+      }
+      return { errors: errorKeys, user };
+    }
   },
 
   /**
